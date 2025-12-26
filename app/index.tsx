@@ -1,23 +1,11 @@
 import { Link } from "expo-router";
-import { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { HomeSkeleton } from "@/components/ui/HomeSkeleton"
+import { usePokemons } from "@/hooks/usePokemons";
 
-interface Pokemon {
-  name: string;
-  image: string;
-  imageBack: string;
-  types: PokemonType[];
-}
-
-interface PokemonType {
-  type: {
-    name: string;
-    url: string;
-  };
-}
 
 export const colorsByType: Record<string, string> = {
-  normal: "#A8A77A",
+  normal: "#6F35FC",
   fire: "#EE8130",
   water: "#6390F0",
   electric: "#F7D02C",
@@ -28,7 +16,7 @@ export const colorsByType: Record<string, string> = {
   ground: "#E2BF65",
   flying: "#A98FF3",
   psychic: "#F95587",
-  bug: "#A6B91A",
+  bug: "#F7D02C",
   rock: "#B6A136",
   ghost: "#735797",
   dragon: "#6F35FC",
@@ -38,92 +26,78 @@ export const colorsByType: Record<string, string> = {
 };
 
 export default function Index() {
-  const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  useEffect(() => {
-    getPokemons();
-  }, []);
+  const { data: pokemons, loading, error } = usePokemons(200);
 
-  async function getPokemons() {
-    try {
-      const response = await fetch(
-        "https://pokeapi.co/api/v2/pokemon?limit=20"
-      );
-      const data = await response.json();
-
-      const detailedPokemons = await Promise.all(
-        data.results.map(async (pokemon: any) => {
-          const res = await fetch(pokemon.url);
-          const details = await res.json();
-          return {
-            name: pokemon.name,
-            image: details.sprites.front_default,
-            imageBack: details.sprites.back_default,
-            types: details.types,
-          };
-        })
-      );
-      console.log("data", detailedPokemons);
-      setPokemons(detailedPokemons);
-    } catch (error) {
-      console.log(error);
-    }
-  }
+  if (error)
+    return <Text style={{ color: "white" }}>Something went wrong</Text>;
 
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <ScrollView
-        contentContainerStyle={{
-          padding: 16,
-          gap: 16,
-        }}
-      >
-        {pokemons.map((pokemon) => (
-          <Link
-            href={{ pathname: "/details" , params: {name: pokemon.name}}}
-            key={pokemon.name}
-            style={{
-              backgroundColor: colorsByType[pokemon.types[0].type.name] + 50,
-              borderRadius: 20,
-              padding: 20,
-            }}
-          >
-            <View>
-              <Text style={styles.name}>{pokemon.name}</Text>
-              <Text style={styles.type}>{pokemon.types[0].type.name}</Text>
-              <View style={{ flexDirection: "row-reverse" }}>
-                <Image
-                  style={{ width: 150, height: 150 }}
-                  source={{ uri: pokemon.image }}
-                />
-                <Image
-                  style={{ width: 150, height: 150 }}
-                  source={{ uri: pokemon.imageBack }}
-                />
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        {loading ? (
+          <HomeSkeleton />
+        ) : (
+          pokemons.map((pokemon) => (
+            <Link
+              href={{ pathname: "/details", params: { name: pokemon.name } }}
+              key={pokemon.name}
+              style={[
+                styles.card,
+                {
+                  backgroundColor:
+                    colorsByType[pokemon.types[0].type.name] + "50",
+                  borderColor: colorsByType[pokemon.types[0].type.name],
+                },
+              ]}
+            >
+              <View>
+                <Text style={styles.name}>{pokemon.name}</Text>
+                <Text style={styles.type}>{pokemon.id}</Text>
+                <View style={{ flexDirection: "row-reverse" }}>
+                  <Image style={styles.image} source={{ uri: pokemon.image }} />
+                  <Image
+                    style={styles.image}
+                    source={{ uri: pokemon.imageBack }}
+                  />
+                </View>
               </View>
-            </View>
-          </Link>
-        ))}
+            </Link>
+          ))
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#121212",
+  },
   name: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: "700",
     textAlign: "center",
+    color: "white",
+    textTransform: "capitalize",
   },
   type: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "400",
     textAlign: "center",
-    color: "gray",
+    color: "#eee",
+  },
+  image: {
+    width: 150,
+    height: 150,
+  },
+  card: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 20,
+    borderColor: "#555",
+    marginBottom: 16,
   },
 });
